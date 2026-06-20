@@ -58,21 +58,72 @@ class CPU:
         return extended_instruction
     
     def execute_r_type(self, fields, instruction):
+        funct3 = fields['funct3']
+        funct7 = fields['funct7']
+        rs1 = fields['rs1']
+        rs2 = fields['rs2']
+        rd = fields['rd']
+
+        val1 = self.regs.read(rs1)
+        val2 = self.regs.read(rs2)
+
         dispatch_table = {
-            "ADD": {"funct3": 0x0, "funct7": 0x00},
-            "SUB": {"funct3": 0x0, "funct7": 0x20},
-            "XOR": {"funct3": 0x4, "funct7": 0x00},
-            "OR": {"funct3": 0x6, "funct7": 0x00},
-            "AND": {"funct3": 0x7, "funct7": 0x00},
+            (0x0, 0x00): "ADD",
+            (0x0, 0x20): "SUB",
+            (0x4, 0x00): "XOR",
+            (0x6, 0x00): "OR",
+            (0x7, 0x00): "AND",
+            (0x1, 0x00): "SLL",
+            (0x2, 0x00): "SLT",
+            (0x3, 0x00): "SLTU",
+            (0x5, 0x20): "SRA",
+            (0x5, 0x00): "SRL"
         }
+
+        def SRA(x, y):
+            x_signed = self.sign_extend(x, 32)
+            return (x_signed >> (y & 0x1F)) & 0xFFFFFFFF
+
+        def SLT(x, y):
+            x_signed = self.sign_extend(x, 32)
+            y_signed = self.sign_extend(y, 32)
+
+            if x_signed < y_signed:
+                return 1
+            else:
+                return 0
+            
+        def SLTU(x, y):
+            if x < y:
+                return 1
+            else:
+                return 0
+
+        operation_dict = {
+            "ADD": lambda x, y: (x + y) & 0xFFFFFFFF,
+            "SUB": lambda x, y: (x - y) & 0xFFFFFFFF,
+            "XOR": lambda x, y: x ^ y,
+            "OR": lambda x, y: x | y,
+            "AND": lambda x, y: x & y,
+            "SLL": lambda x, y: (x << (y & 0x1F)) & 0xFFFFFFFF,
+            "SRL": lambda x, y: (x >> (y & 0x1F)) & 0xFFFFFFFF,
+            "SRA": SRA,
+            "SLT": SLT,
+            "SLTU": SLTU,
+        }
+
+        operation = dispatch_table.get((funct3, funct7))
+        result = operation_dict[operation](val1, val2)
+
+        self.regs.write(rd, result)
+        self.pc += 4
     
     def step(self):
-        if self.pc >= self.mem:
+        if self.pc >= len(self.mem):
             self.running = False
         fetched_instruction = self.mem.read_word(self.pc)
         fields = self.decode(fetched_instruction)
         opcode = fields['opcode']
-        
     
 computa = CPU()
 fields = CPU.decode(computa, 0b00000001001001001000010000110011)
