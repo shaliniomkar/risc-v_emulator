@@ -336,7 +336,42 @@ class CPU:
         else:
             self.pc = old_pc + 4
 
+    def execute_jal(self, fields, instruction):
+        rd = fields['rd']
+        return_address = self.pc + 4
+        self.regs.write(rd, return_address)
+        self.pc += self.imm_j(instruction)
 
+    def execute_jalr(self, fields, instruction):
+        rd = fields['rd']
+        rs1 = fields['rs1']
+        val1 = self.regs.read(rs1)
+        return_address = self.pc + 4
+        target = (val1 + self.imm_i(instruction)) & ~1
+        self.regs.write(rd, return_address)
+        self.pc = target
+
+    def execute_lui(self, fields, instruction):
+        rd = fields['rd']
+        immediate_value = self.imm_u(instruction)
+        self.regs.write(rd, immediate_value)
+        self.pc += 4
+
+    def execute_auipc(self, fields, instruction):
+        rd = fields['rd']
+        immediate_value = self.imm_u(instruction)
+        self.regs.write(rd, (self.pc + immediate_value) & 0xFFFFFFFF)
+        self.pc += 4
+
+    def execute_system(self, fields, instruction):
+        immediate_value = self.imm_i(instruction)
+        if immediate_value == 1:
+            self.running = False
+        elif immediate_value == 0:
+            print("ECALL hit")
+            self.pc += 4
+        else:
+            raise ValueError(f"Immediate value {immediate_value} unknown")
 
     def step(self):
         if self.pc >= len(self.mem):
