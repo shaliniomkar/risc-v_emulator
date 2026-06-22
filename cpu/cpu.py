@@ -260,6 +260,84 @@ class CPU:
 
         self.pc += 4
 
+    def execute_branch(self, fields, instruction):
+        old_pc = self.pc
+        funct3 = fields['funct3']
+        rs1 = fields['rs1']
+        rs2 = fields['rs2']
+        immediate_value = self.imm_b(instruction)
+
+        val1 = self.regs.read(rs1)
+        val2 = self.regs.read(rs2)
+
+        dispatch_table = {
+            0x0: "BEQ",
+            0x1: "BNE",
+            0x4: "BLT",
+            0x5: "BGE",
+            0x6: "BLTU",
+            0x7: "BGEU" 
+        }
+
+        def BEQ(x, y):
+            if x == y:
+                return True
+            else:
+                return False
+            
+        def BNE(x, y):
+            if x != y:
+                return True
+            else:
+                return False
+            
+        def BLT(x, y):
+            extend_1 = self.sign_extend(x, 32)
+            extend_2 = self.sign_extend(y, 32)
+
+            if extend_1 < extend_2:
+                return True
+            else:
+                return False
+            
+        def BGE(x, y):
+            extend_1 = self.sign_extend(x, 32)
+            extend_2 = self.sign_extend(y, 32)
+
+            if extend_1 >= extend_2:
+                return True
+            else:
+                return False
+            
+        def BLTU(x, y):
+            if x < y:
+                return True
+            else:
+                return False
+            
+        def BGEU(x, y):
+            if x >= y:
+                return True
+            else:
+                return False
+            
+        operation_dict = {
+            "BEQ": BEQ,
+            "BNE": BNE,
+            "BLT": BLT,
+            "BGE": BGE,
+            "BLTU": BLTU,
+            "BGEU": BGEU
+        }
+
+        operation = dispatch_table.get(funct3)
+        if operation_dict[operation](val1, val2):
+            self.pc = old_pc + immediate_value
+        else:
+            self.pc = old_pc + 4
+
+
+
     def step(self):
         if self.pc >= len(self.mem):
             self.running = False
