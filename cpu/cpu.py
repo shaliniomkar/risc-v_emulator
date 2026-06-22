@@ -374,15 +374,36 @@ class CPU:
             raise ValueError(f"Immediate value {immediate_value} unknown")
 
     def step(self):
-        if self.pc >= len(self.mem):
+        if self.pc >= len(self.mem._ba):
             self.running = False
-        fetched_instruction = self.mem.read_word(self.pc)
-        fields = self.decode(fetched_instruction)
+            return
+        instruction = self.mem.read_word(self.pc)
+        fields = self.decode(instruction)
         opcode = fields['opcode']
-    
-computa = CPU()
-fields = CPU.decode(computa, 0b00000001001001001000010000110011)
-print(fields)
 
-instruction = CPU.imm_j(computa, 0b00000000011001001000010000010011)
-print(instruction)
+        dispatch_table = {
+            0x33: self.execute_r_type,
+            0x13: self.execute_i_type,
+            0x03: self.execute_load,
+            0x23: self.execute_store,
+            0x63: self.execute_branch,
+            0x6F: self.execute_jal,
+            0x67: self.execute_jalr,
+            0x37: self.execute_lui,
+            0x17: self.execute_auipc,
+            0x73: self.execute_system
+        }
+        
+        if opcode in dispatch_table.keys():
+            dispatch_table[opcode](fields, instruction)
+        else:
+            raise ValueError(f"Opcode {opcode} unknown. PC at {self.pc}")
+
+    def run(self):
+        while self.running:
+            self.step()
+
+    def reset(self):
+        self.regs.reset()
+        self.pc = 0
+        self.running = True
