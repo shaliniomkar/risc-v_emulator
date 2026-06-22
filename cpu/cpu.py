@@ -221,12 +221,44 @@ class CPU:
             "LHU": LHU
         }
 
-        operation = dispatch_table.get((funct3))
+        operation = dispatch_table.get(funct3)
         result = operation_dict[operation](address)
 
         self.regs.write(rd, result)
         self.pc += 4
 
+    def execute_store(self, fields, instruction):
+        funct3 = fields['funct3']
+        rs1 = fields['rs1']
+        val1 = self.regs.read(rs1)
+        address = (val1 + self.imm_s(instruction)) & 0xFFFFFFFF
+        value = self.regs.read(fields['rs2'])
+
+        dispatch_table = {
+            0x0: "SB",
+            0x1: "SH",
+            0x2: "SW"
+        }
+
+        def SB(address, value):
+            self.mem.write_byte(address, value)
+
+        def SH(address, value):
+            self.mem.write_halfword(address, value)
+
+        def SW(address, value):
+            self.mem.write_word(address, value)
+
+        operation_dict = {
+            "SB": SB,
+            "SH": SH,
+            "SW": SW
+        }
+
+        operation = dispatch_table.get(funct3)
+        operation_dict[operation](address, value)
+
+        self.pc += 4
 
     def step(self):
         if self.pc >= len(self.mem):
