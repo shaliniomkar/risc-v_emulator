@@ -182,7 +182,52 @@ class CPU:
         self.regs.write(rd, result)
         self.pc += 4
         
-    
+    def execute_load(self, fields, instruction):
+        funct3 = fields['funct3']
+        rd = fields['rd']
+        rs1 = fields['rs1']
+        address = (fields['rs1'] + self.imm_i(instruction)) & 0xFFFFFFFF
+
+        def LB(address):
+            preprocessed = self.mem.read_address(address) 
+            return self.sign_extend(preprocessed, 8)
+        
+        def LH(address):
+            preprocessed = self.mem.read_halfword(address)
+            return self.sign_extend(preprocessed, 16)
+        
+        def LW(address):
+            return self.mem.read_word(address)
+        
+        def LBU(address):
+            return self.mem.read_address(address) 
+
+        def LHU(address):
+            return self.mem.read_halfword(address) 
+        
+        dispatch_table = {
+            0x0: "LB",
+            0x1: "LH",
+            0x2: "LW",
+            0x4: "LBU",
+            0x5: "LHU"
+        }
+
+        operation_dict = {
+            "LB": LB,
+            "LH": LH,
+            "LW": LW,
+            "LBU": LBU,
+            "LHU": LHU
+        }
+
+        operation = dispatch_table.get((funct3))
+        result = operation_dict[operation](address)
+
+        self.regs.write(rd, result)
+        self.pc += 4
+
+
     def step(self):
         if self.pc >= len(self.mem):
             self.running = False
