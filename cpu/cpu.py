@@ -57,7 +57,7 @@ class CPU:
         extended_instruction = self.sign_extend((bit_20 << 20 | bit_19_12 << 12 | bit_11 << 11 | bit_10_1 << 1 | 0), 21)
         return extended_instruction
     
-    def execute_r_type(self, fields, instruction):
+    def execute_r_type(self, fields):
         funct3 = fields['funct3']
         funct7 = fields['funct7']
         rs1 = fields['rs1']
@@ -109,7 +109,7 @@ class CPU:
             "SRL": lambda x, y: (x >> (y & 0x1F)) & 0xFFFFFFFF,
             "SRA": SRA,
             "SLT": SLT,
-            "SLTU": SLTU,
+            "SLTU": SLTU
         }
 
         operation = dispatch_table.get((funct3, funct7))
@@ -117,6 +117,71 @@ class CPU:
 
         self.regs.write(rd, result)
         self.pc += 4
+
+    def execute_i_type(self, fields, instruction):
+        funct3 = fields['funct3']
+        bit_30 = (instruction >> 30) & 0x1
+        rs1 = fields['rs1']
+        immediate_value = self.imm_i(instruction)
+        rd = fields['rd']
+
+        val1 = self.regs.read(rs1)
+
+        dispatch_table = {
+            (0x0, 0): "ADDI",
+            (0x4, 0): "XORI",
+            (0x6, 0): "ORI",
+            (0x7, 0): "ANDI",
+            (0x2, 0): "SLTI",
+            (0x3, 0): "SLTIU",
+            (0x1, 0): "SLLI",
+            (0x5, 0): "SRLI",
+            (0x5, 1): "SRAI"
+        }
+
+        def SLTI(x):
+            if self.sign_extend(x, 32) < immediate_value:
+                return 1
+            else:
+                return 0
+            
+        def SLTIU(x):
+            if x < (immediate_value & 0xFFFFFFFF):
+                return 1
+            else:
+                return 0
+            
+        def SLLI(x):
+            shift_amount = (instruction >> 20) & 0x1F
+            return (x << shift_amount) & 0xFFFFFFFF
+        
+        def SRLI(x):
+            shift_amount = (instruction >> 20) & 0x1F
+            return (x >> shift_amount) & 0xFFFFFFFF
+        
+        def SRAI(x):
+            extended = self.sign_extend(x, 32)
+            shift_amount = (instruction >> 20) & 0x1F
+            return (extended >> shift_amount) & 0xFFFFFFFF
+
+        operation_dict = {
+            "ADDI": lambda x: (x + immediate_value) & 0xFFFFFFFF,
+            "XORI": lambda x: (x ^ immediate_value) & 0xFFFFFFFF,
+            "ORI": lambda x: x | immediate_value,
+            "ANDI": lambda x: x & immediate_value,
+            "SLTI": SLTI,
+            "SLTIU": SLTIU,
+            "SLLI": SLLI,
+            "SRLI": SRLI,
+            "SRAI": SRAI
+        }
+
+        operation = dispatch_table.get((funct3, bit_30))
+        result = operation_dict[operation](val1)
+
+        self.regs.write(rd, result)
+        self.pc += 4
+        
     
     def step(self):
         if self.pc >= len(self.mem):
