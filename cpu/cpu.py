@@ -57,7 +57,7 @@ class CPU:
         extended_instruction = self.sign_extend((bit_20 << 20 | bit_19_12 << 12 | bit_11 << 11 | bit_10_1 << 1 | 0), 21)
         return extended_instruction
     
-    def execute_r_type(self, fields):
+    def execute_r_type(self, fields, instruction):
         funct3 = fields['funct3']
         funct7 = fields['funct7']
         rs1 = fields['rs1']
@@ -129,11 +129,17 @@ class CPU:
 
         dispatch_table = {
             (0x0, 0): "ADDI",
+            (0x0, 1): "ADDI",
             (0x4, 0): "XORI",
+            (0x4, 1): "XORI",
             (0x6, 0): "ORI",
+            (0x6, 1): "ORI",
             (0x7, 0): "ANDI",
+            (0x7, 1): "ANDI",
             (0x2, 0): "SLTI",
+            (0x2, 1): "SLTI",
             (0x3, 0): "SLTIU",
+            (0x3, 1): "SLTIU",
             (0x1, 0): "SLLI",
             (0x5, 0): "SRLI",
             (0x5, 1): "SRAI"
@@ -186,7 +192,8 @@ class CPU:
         funct3 = fields['funct3']
         rd = fields['rd']
         rs1 = fields['rs1']
-        address = (fields['rs1'] + self.imm_i(instruction)) & 0xFFFFFFFF
+        val1 = self.regs.read(rs1)
+        address = (val1 + self.imm_i(instruction)) & 0xFFFFFFFF
 
         def LB(address):
             preprocessed = self.mem.read_address(address) 
@@ -377,6 +384,10 @@ class CPU:
         if self.pc >= len(self.mem._ba):
             self.running = False
             return
+        if self.pc == 0:
+            self.running = False
+            return
+        
         instruction = self.mem.read_word(self.pc)
         fields = self.decode(instruction)
         opcode = fields['opcode']

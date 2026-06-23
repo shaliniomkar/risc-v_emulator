@@ -30,6 +30,7 @@ class ELFLoader:
                         self.cpu.mem.load(zero_start, bytearray(zero_count))
 
             self.cpu.pc = elf.header['e_entry']
+            self.cpu.regs.write(2, self.cpu.mem._ba.__len__() - 4)
             
     
 
