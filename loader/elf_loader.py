@@ -2,8 +2,8 @@ from elftools.elf.elffile import ELFFile
 from cpu.cpu import CPU
 
 class ELFLoader:
-    def __init__(self):
-        self.cpu = CPU()
+    def __init__(self, cpu):
+        self.cpu = cpu
 
     def load(self, filename):
         with open(filename, 'rb') as f:
@@ -23,12 +23,11 @@ class ELFLoader:
                     mems = segment.header.p_memsz
                     data = segment.data()
 
+                    self.cpu.mem.load(vaddr, data)
                     if mems > files:
                         zero_count = mems - files
                         zero_start = vaddr + files
                         self.cpu.mem.load(zero_start, bytearray(zero_count))
-
-                    self.cpu.mem.load(vaddr, data)
 
             self.cpu.pc = elf.header['e_entry']
             
