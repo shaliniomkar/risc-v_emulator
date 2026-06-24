@@ -43,3 +43,4 @@ class Memory:
         if address + length > len(self._ba):
             raise ValueError(f"Memory access out of bounds at 0x{address:08X}")
         hexdump(self._ba[address:address + length])
+        return self._ba[address:address + length]

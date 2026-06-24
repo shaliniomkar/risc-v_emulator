@@ -7,6 +7,7 @@ class CPU:
         self.mem = Memory()
         self.pc = 0
         self.running = True
+        self.last_pc = 0
     
     def decode(self, instruction):
         fields = {}
@@ -388,6 +389,8 @@ class CPU:
             self.running = False
             return
         
+        self.last_pc = self.pc
+        
         instruction = self.mem.read_word(self.pc)
         fields = self.decode(instruction)
         opcode = fields['opcode']
@@ -417,4 +420,5 @@ class CPU:
     def reset(self):
         self.regs.reset()
         self.pc = 0
+        self.last_pc = 0
         self.running = True

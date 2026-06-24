@@ -1,2 +1,4 @@
 .venv
 cpu/__pycache__
+debugger/__pycache__
+loader/__pycache__

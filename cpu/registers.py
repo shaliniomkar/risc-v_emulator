@@ -25,4 +25,4 @@ class Register:
 
     def dump(self):
         for i, val in enumerate(self._regs):
-            print(f"x{i:02} = 0x{self.ABI_NAMES[i]:>4}  ({val})")
+            print(f"x{i:02} = 0x{self.ABI_NAMES[i]:>4}  ({val})") 
